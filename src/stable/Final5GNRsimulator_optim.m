@@ -16,11 +16,11 @@ clear all, close all, clc;
 % -------------------------------------------------------------------------
 
 noSlotsSim                        = 2;         % Number of slots per transmission, min = 1, keep max =< 100.
-ModOrder                          = "256QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
+ModOrder                          = "64QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
 SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
-pmiPrecoding                      = 0;          % If 1 PMI precoder, else SVD
+pmiPrecoding                      = 1;          % If 1 PMI precoder, else SVD
 perfectEstimation                 = false;      % Perfect synchronization and channel estimation
-numIter                           = 25e3         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
+numIter                           = 1e2         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration

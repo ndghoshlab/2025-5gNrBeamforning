@@ -18,11 +18,11 @@ clear all, close all, clc;
 % -------------------------------------------------------------------------
 
 noSlotsSim                        = 2;         % Number of slots per packet (FIXED at 2)
-ModOrder                          = "256QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
+ModOrder                          = "64QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
 SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
-pmiPrecoding                      = 0;          % If 1 PMI precoder, else SVD
+pmiPrecoding                      = 1;          % If 1 PMI precoder, else SVD
 perfectEstimation                 = false;      % Perfect synchronization and channel estimation
-numIter                           = 25e3;       % Number of iterations (packets) for this link configuration
+numIter                           = 1e2;       % Number of iterations (packets) for this link configuration
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration
@@ -469,8 +469,8 @@ fprintf('Average time per iteration: %.4f seconds\n', elapsedTime/numIter);
 % Compute Summary Statistics
 % -------------------------------------------------------------------------
 
-% Calculate Packet Error Rate (PER) for each SNR
-PER = sum(packet_error_flag, 1) / numIter;
+% Calculate total packet errors for each SNR
+totalPacketErrors = sum(packet_error_flag, 1);
 
 % Calculate average BER for each SNR
 avgBER = mean(inter_snr, 1);
@@ -482,11 +482,11 @@ avgBitErrorsPerPacket = mean(packet_bit_errors, 1);
 fprintf('\n========================================\n');
 fprintf('Summary Statistics:\n');
 fprintf('========================================\n');
-fprintf('%-10s %-15s %-20s %-20s\n', 'SNR (dB)', 'BER', 'Avg Bit Err/Pkt', 'PER');
-fprintf('%-10s %-15s %-20s %-20s\n', '--------', '---', '---------------', '---');
+fprintf('%-10s %-15s %-20s %-20s\n', 'SNR (dB)', 'BER', 'Avg Bit Err/Pkt', 'Pkt Errors');
+fprintf('%-10s %-15s %-20s %-20s\n', '--------', '---', '---------------', '----------');
 for idx = 1:numSNR
-    fprintf('%-10.1f %-15.4e %-20.2f %-20.4f\n', ...
-        SNRdB(idx), avgBER(idx), avgBitErrorsPerPacket(idx), PER(idx));
+    fprintf('%-10.1f %-15.4e %-20.2f %-20d\n', ...
+        SNRdB(idx), avgBER(idx), avgBitErrorsPerPacket(idx), totalPacketErrors(idx));
 end
 
 %% ------------------------------------------------------------------------
@@ -499,42 +499,6 @@ ylabel('BER');
 grid on;
 title(sprintf('BER vs SNR (%d packets, %d slots/packet)', numIter, noSlotsSim));
 legend('BER');
-
-%% ------------------------------------------------------------------------
-% Packet Error Rate vs SNR
-% -------------------------------------------------------------------------
-figure
-semilogy(SNRdB, PER, '-s', 'LineWidth', 2, 'Color', [0.8500 0.3250 0.0980]);
-xlabel('SNR (dB)'); 
-ylabel('Packet Error Rate (PER)'); 
-grid on;
-title(sprintf('PER vs SNR (%d packets, %d slots/packet)', numIter, noSlotsSim));
-legend('PER');
-
-%% ------------------------------------------------------------------------
-% Average Bit Errors per Packet vs SNR
-% -------------------------------------------------------------------------
-figure
-semilogy(SNRdB, avgBitErrorsPerPacket, '-d', 'LineWidth', 2, 'Color', [0.4660 0.6740 0.1880]);
-xlabel('SNR (dB)'); 
-ylabel('Average Bit Errors per Packet'); 
-grid on;
-title(sprintf('Avg Bit Errors per Packet vs SNR (%d packets, %d slots/packet)', numIter, noSlotsSim));
-legend('Avg Bit Errors');
-
-%% ------------------------------------------------------------------------
-% Combined Plot: BER and PER
-% -------------------------------------------------------------------------
-figure
-semilogy(SNRdB, avgBER, '-o', 'LineWidth', 2, 'DisplayName', 'BER');
-hold on;
-semilogy(SNRdB, PER, '-s', 'LineWidth', 2, 'DisplayName', 'PER');
-hold off;
-xlabel('SNR (dB)'); 
-ylabel('Error Rate'); 
-grid on;
-title(sprintf('BER and PER vs SNR (%d packets, %d slots/packet)', numIter, noSlotsSim));
-legend('Location', 'best');
 
 %% *References*
 % [1] 3GPP TS 38.214. "NR; Physical layer procedures for data."

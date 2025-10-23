@@ -16,11 +16,11 @@ clear all, close all, clc;
 % -------------------------------------------------------------------------
 
 noSlotsSim                        = 2;         % Number of slots per transmission, min = 1, keep max =< 100.
-ModOrder                          = "256QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
-SNRdB                             = [100];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
-pmiPrecoding                      = 0;          % If 1 PMI precoder, else SVD
+ModOrder                          = "64QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
+SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
+pmiPrecoding                      = 1;          % If 1 PMI precoder, else SVD
 perfectEstimation                 = false;      % Perfect synchronization and channel estimation
-numIter                           = 25e3         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
+numIter                           = 1e2         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration
@@ -438,12 +438,16 @@ for msnr = 1:numIter;
     inter_snr  = [inter_snr ; ber_snr];
 end
 
-%--------------------------------------------------------------------------
+%% ------------------------------------------------------------------------
 % Simulation Results
 % -------------------------------------------------------------------------
 figure
-semilogy(SNRdB, mean(inter_snr), '-o');
-xlabel('SNR (dB)'); ylabel('BER'); grid on;
+semilogy(SNRdB, mean(inter_snr), '-o', 'LineWidth', 2);
+xlabel('SNR (dB)'); 
+ylabel('BER'); 
+grid on;
+title(sprintf('BER vs SNR (%d iterations, %d slots)', numIter, noSlotsSim));
+legend('Optimized Simulation');
 
 %% *References*
 % [1] 3GPP TS 38.214. "NR; Physical layer procedures for data." _3rd Generation
