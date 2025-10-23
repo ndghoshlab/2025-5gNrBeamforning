@@ -6,10 +6,10 @@
 
 %--------------------------------------------------------------------------
 % Changelogs:
-% - Initial version created by Armed Tusha
-% - Introduced parfor for parallel processing, and other optimizations to
-%   accomodate parallel execution.
+% - Initial version created by Armed Tusha, parfor added by Joshua.
 % - Removed capability to simulation multiple slots.
+% - Incorporated target bit error based WHILE-loop simulation stopping criteria.
+% - Changed parallel processing structure for WHILE-loop incorporation.
 % -------------------------------------------------------------------------
 
 clear all, close all, clc;
@@ -22,7 +22,8 @@ ModOrder                          = "256QAM";    % Modulation order QPSK, 16QAM,
 SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
 pmiPrecoding                      = 0;          % If 1 PMI precoder, else SVD
 perfectEstimation                 = false;      % Perfect synchronization and channel estimation
-numIter                           = 25e3         % Number of iterations for this link configuration
+maxBitErrors                      = 100;        % Target number of bit errors per SNR point
+maxIter                           = 1e6;        % Maximum iterations per SNR (safety limit)
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration
@@ -125,23 +126,20 @@ ofdmInfo = nrOFDMInfo(carrier);
 rng('default');
 
 %% -------------------------------------------------------------------------
-% OPTIMIZED Monte Carlo Simulator - Single Slot Version
+% OPTIMIZED Monte Carlo Simulator - Single Slot Version with Bit Error Target
 % -------------------------------------------------------------------------
-fprintf('Starting single-slot simulation with %d iterations...\n', numIter);
-fprintf('Using parallel processing (parfor) if Parallel Computing Toolbox available.\n');
-fprintf('Progress updates every 10%%...\n\n');
+fprintf('Starting single-slot simulation with target of %d bit errors per SNR...\n', maxBitErrors);
+fprintf('Maximum iterations per SNR: %d\n', maxIter);
+fprintf('Using parallel processing (parfor) across SNR values\n\n');
 
-% OPTIMIZATION 1: Preallocate result matrix (no dynamic growth)
+% Preallocate result arrays
 numSNR = length(SNRdB);
-inter_snr = zeros(numIter, numSNR);
+ber_results = zeros(1, numSNR);
+totalBits_results = zeros(1, numSNR);
+totalBitErrors_results = zeros(1, numSNR);
+numIterations_results = zeros(1, numSNR);
 
-% Track progress using DataQueue for real-time updates from parfor
-progressStep = max(1, floor(numIter / 100)); % Update every 1%
-if progressStep < 1
-    progressStep = 1;
-end
-
-% Create a parallel pool if not already created (optional - parfor will auto-create)
+% Create a parallel pool if not already created
 try
     poolobj = gcp('nocreate');
     if isempty(poolobj)
@@ -153,36 +151,38 @@ catch
     fprintf('Parallel Computing Toolbox not available. Using serial execution.\n');
 end
 
-% Create DataQueue for progress updates
-D = parallel.pool.DataQueue;
-afterEach(D, @(x) fprintf('Iteration %d/%d (%.1f%%) - SNR: %.1f dB, BER: %.2e\n', ...
-    x.iter, numIter, 100*x.iter/numIter, x.snr, x.ber));
-
 tic; % Start timing
 
-% OPTIMIZATION 2: Use parfor for parallel iterations
-% Each worker gets its own encoder/decoder/HARQ entity
-parfor msnr = 1:numIter
-    % OPTIMIZATION 3: Create local copies of stateful objects for each worker
-    % This is necessary for parfor to avoid shared state
+% Parallel loop through each SNR value
+parfor snrIdx = 1:numSNR
+    fprintf('\n========================================\n');
+    fprintf('Processing SNR = %.1f dB (Worker)\n', SNRdB(snrIdx));
+    fprintf('========================================\n');
+    
+    % Initialize counters for this SNR
+    totalBitErrors = 0;
+    totalBits = 0;
+    iterCount = 0;
+    
+    % Create stateful objects for this SNR (local to each worker)
     encodeDLSCH = clone(encodeDLSCH_template);
     decodeDLSCH = clone(decodeDLSCH_template);
     harqEntity = HARQEntity(0:NHARQProcesses-1, rvSeq, pdsch.NumCodewords);
     
-    % Local carrier object (to avoid broadcast variable issues)
+    % Local carrier object (each worker needs its own)
     localCarrier = carrier;
     
-    % Initialize practical timing offset for this iteration
+    % Initialize practical timing offset
     offsetPractical = 0;
     
-    % OPTIMIZATION FIX: Initialize temporary variables to avoid parfor warnings
-    pmiInfoPractical = struct(); % Initialize empty struct
-    trBlk = []; % Initialize empty array
+    % Initialize temporary variables
+    pmiInfoPractical = struct();
+    trBlk = [];
     
-    % OPTIMIZATION 4: Preallocate per-iteration arrays
-    ber_snr = zeros(1, numSNR);
-    
-    for isi = 1:numSNR
+    % While loop: continue until target bit errors reached or max iterations
+    while totalBitErrors < maxBitErrors && iterCount < maxIter
+        iterCount = iterCount + 1;
+        
         % Create a channel object
         channel = nrTDLChannel;
         channel.DelayProfile = "TDL-C";
@@ -198,7 +198,7 @@ parfor msnr = 1:numIter
         channel.DelaySpread = 0;
         maxChDelay = 0;
         
-        % OPTIMIZATION 6: Use precomputed ofdmInfo
+        % Use precomputed ofdmInfo
         channel.SampleRate = ofdmInfo.SampleRate;
         
         % Initial timing offset
@@ -234,7 +234,7 @@ parfor msnr = 1:numIter
         [rxWaveform, pathGains, sampleTimes] = channel(txWaveform);
         
         % Add AWGN
-        SNR = 10^(SNRdB(isi) / 10);
+        SNR = 10^(SNRdB(snrIdx) / 10);
         sigma = 1 / sqrt(2.0 * nRxAnts * double(ofdmInfo.Nfft) * SNR);
         noise = sigma * complex(randn(size(rxWaveform)), randn(size(rxWaveform)));
         rxWaveform = rxWaveform + noise;
@@ -285,8 +285,7 @@ parfor msnr = 1:numIter
         noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offsetPerfect:end, :));
         nVarPerfect = var(noiseGrid(:));
         
-        % OPTIMIZATION 7: Simplified CSI computation (only when needed)
-        % Skip detailed CSI reporting arrays in optimized version to save memory/time
+        % Simplified CSI computation (only when needed)
         if ~isempty(nzpCSIRSInd)
             numLayersPractical = 1; % Fixed for this configuration
             
@@ -356,7 +355,7 @@ parfor msnr = 1:numIter
         [rxWaveform, pathGains, sampleTimes] = channel(txWaveform);
         
         % Add noise
-        noise = generateAWGN(SNRdB(isi), nRxAnts, ofdmInfo.Nfft, size(rxWaveform));
+        noise = generateAWGN(SNRdB(snrIdx), nRxAnts, ofdmInfo.Nfft, size(rxWaveform));
         rxWaveform = rxWaveform + noise;
         
         % Timing estimation and synchronization
@@ -412,40 +411,77 @@ parfor msnr = 1:numIter
         [decbits, blkerr] = decodeDLSCH(dlschLLRs, pdsch.Modulation, pdsch.NumLayers, ...
             harqEntity.RedundancyVersion, harqEntity.HARQProcessID);
         
-        % Calculate BER for this SNR value (single slot)
-        [~, ber] = biterr(trBlk, decbits);
+        % Calculate bit errors for this iteration
+        numBitErrors = sum(trBlk ~= decbits);
+        numBits = length(trBlk);
         
-        % Store BER directly - no averaging across slots needed
-        ber_snr(isi) = ber;
+        % Update totals
+        totalBitErrors = totalBitErrors + numBitErrors;
+        totalBits = totalBits + numBits;
         
         % Update HARQ
         updateAndAdvance(harqEntity, blkerr, trBlkSizes, pdschInfo.G);
+        
+        % Progress update every 100 iterations (less verbose in parallel)
+        if mod(iterCount, 500) == 0
+            currentBER = totalBitErrors / totalBits;
+            fprintf('  [SNR %.1f dB] Iteration %d: Bit Errors = %d/%d, BER = %.4e\n', ...
+                SNRdB(snrIdx), iterCount, totalBitErrors, maxBitErrors, currentBER);
+        end
     end
     
-    % OPTIMIZATION 10: Store results directly in preallocated matrix
-    inter_snr(msnr, :) = ber_snr;
+    % Store results for this SNR (parallel-safe assignment)
+    ber_results(snrIdx) = totalBitErrors / totalBits;
+    totalBits_results(snrIdx) = totalBits;
+    totalBitErrors_results(snrIdx) = totalBitErrors;
+    numIterations_results(snrIdx) = iterCount;
     
-    % Send progress update to main thread (every progressStep iterations)
-    if mod(msnr, progressStep) == 0
-        progressData = struct('iter', msnr, 'snr', SNRdB(1), 'ber', ber_snr(1));
-        send(D, progressData);
+    % Final report for this SNR
+    fprintf('\n[SNR %.1f dB] completed:\n', SNRdB(snrIdx));
+    fprintf('  Total iterations: %d\n', iterCount);
+    fprintf('  Total bit errors: %d\n', totalBitErrors);
+    fprintf('  Total bits: %d\n', totalBits);
+    fprintf('  BER: %.4e\n', ber_results(snrIdx));
+    
+    if iterCount >= maxIter
+        fprintf('  WARNING: Reached maximum iterations without achieving target bit errors\n');
     end
 end
 
 elapsedTime = toc;
-fprintf('\nSimulation completed in %.2f seconds (%.2f minutes)\n', elapsedTime, elapsedTime/60);
-fprintf('Average time per iteration: %.4f seconds\n', elapsedTime/numIter);
+fprintf('\n========================================\n');
+fprintf('Simulation completed in %.2f seconds (%.2f minutes)\n', elapsedTime, elapsedTime/60);
+fprintf('========================================\n\n');
+
+% Display summary table
+fprintf('Summary Results:\n');
+fprintf('%-10s %-15s %-15s %-15s %-15s\n', 'SNR (dB)', 'Iterations', 'Bit Errors', 'Total Bits', 'BER');
+fprintf('%-10s %-15s %-15s %-15s %-15s\n', '--------', '----------', '----------', '----------', '---');
+for snrIdx = 1:numSNR
+    fprintf('%-10.1f %-15d %-15d %-15d %-15.4e\n', ...
+        SNRdB(snrIdx), numIterations_results(snrIdx), ...
+        totalBitErrors_results(snrIdx), totalBits_results(snrIdx), ber_results(snrIdx));
+end
 
 %% ------------------------------------------------------------------------
 % Simulation Results
 % -------------------------------------------------------------------------
 figure
-semilogy(SNRdB, mean(inter_snr), '-o', 'LineWidth', 2);
+semilogy(SNRdB, ber_results, '-o', 'LineWidth', 2);
 xlabel('SNR (dB)'); 
 ylabel('BER'); 
 grid on;
-title(sprintf('BER vs SNR (%d iterations, single slot)', numIter));
+title(sprintf('BER vs SNR (Target: %d bit errors per SNR)', maxBitErrors));
 legend('Single Slot Simulation');
+
+% Additional plot: Number of iterations per SNR
+figure
+plot(SNRdB, numIterations_results, '-s', 'LineWidth', 2);
+xlabel('SNR (dB)'); 
+ylabel('Number of Iterations'); 
+grid on;
+title('Iterations Required to Reach Target Bit Errors');
+legend('Iteration Count');
 
 %% *References*
 % [1] 3GPP TS 38.214. "NR; Physical layer procedures for data."
