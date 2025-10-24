@@ -16,8 +16,8 @@ clear all, close all, clc;
 % -------------------------------------------------------------------------
 
 noSlotsSim                        = 2;         % Number of slots per transmission, min = 1, keep max =< 100.
-ModOrder                          = "64QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
-SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
+ModOrder                          = "256QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
+SNRdB                             = [15];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
 pmiPrecoding                      = 1;          % If 1 PMI precoder, else SVD
 perfectEstimation                 = false;      % Perfect synchronization and channel estimation
 numIter                           = 1e2         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
@@ -192,6 +192,10 @@ parfor msnr = 1:numIter
             channel.NumReceiveAntennas = nRxAnts;
             channel.MaximumDopplerShift = 50;
             channel.DelaySpread = 300e-9;
+
+            % Release the channel
+            release(channel);
+            channel.Seed = randi(1e6);
             
             % Get channel info
             chInfo = info(channel);

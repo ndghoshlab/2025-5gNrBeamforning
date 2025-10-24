@@ -9,6 +9,8 @@
 % Precoding (SVD, PMI)
 % -------------------------------------------------------------------------
 
+%% IMPORTANT: code might have issues with channel parameters and release of channel
+
 clear all, close all, clc;
 
 %% ------------------------------------------------------------------------
@@ -16,11 +18,11 @@ clear all, close all, clc;
 % -------------------------------------------------------------------------
 
 noSlotsSim                        = 2;         % Number of slots per transmission, min = 1, keep max =< 100.
-ModOrder                          = "64QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
-SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
+ModOrder                          = "256QAM";    % Modulation order QPSK, 16QAM, 64QAM, 256QAM
+SNRdB                             = [28];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
 pmiPrecoding                      = 1;          % If 1 PMI precoder, else SVD
 perfectEstimation                 = false;      % Perfect synchronization and channel estimation
-numIter                           = 1e2         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
+numIter                           = 1e3         % Number of iterations for this link configuration, number of channels is noSlotsSim * numIter
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration
@@ -69,7 +71,7 @@ decodeDLSCH_template                       = nrDLSCHDecoder;
 decodeDLSCH_template.MultipleHARQProcesses = true;
 decodeDLSCH_template.TargetCodeRate        = codeRate;
 decodeDLSCH_template.LDPCDecodingAlgorithm = "Normalized min-sum";
-decodeDLSCH_template.MaximumLDPCIterationCount = 6;
+decodeDLSCH_template.MaximumLDPCIterationCount = 8;
 
 % -------------------------------------------------------------------------
 % CSI-RS Configuration
@@ -193,12 +195,17 @@ parfor msnr = 1:numIter
             channel.MaximumDopplerShift = 50;
             channel.DelaySpread = 300e-9;
             
+            % % Randomize channel realization
+            % release(channel);
+            % channel.Seed = randi(1e6);
+
             % Get channel info
             chInfo = info(channel);
             
             % Zero delay configuration
             channel.DelaySpread = 0;
-            maxChDelay = 0;
+            maxChDelay          = 0;
+            % maxChDelay = chInfo.MaximumChannelDelay;
             
             % OPTIMIZATION 6: Use precomputed ofdmInfo
             channel.SampleRate = ofdmInfo.SampleRate;

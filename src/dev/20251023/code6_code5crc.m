@@ -27,7 +27,7 @@ SNRdB_64QAM                       = [15:2:21]; % 64QAM SNR vals
 SNRdB_256QAM                      = [20:2:30]; % 256QAM SNR vals
 
 perfectEstimation                 = false;     % Perfect synchronization and channel estimation
-numIter                           = 1e2;       % Number of iterations (packets) for this link configuration
+numIter                           = 1e1;       % Number of iterations (packets) for this link configuration
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration
@@ -142,17 +142,8 @@ combinationLabels = cell(numCombinations, 1);
 startTime = datetime('now');
 fprintf('\nSimulation started at %s\n', datestr(startTime,'yyyy-mm-dd HH:MM:SS'));
 
-% Create results directory and start diary so command-window output is recorded
-if ~exist('results','dir')
-    mkdir('results');
-end
-resultsSubDir = fullfile('results', datestr(startTime,'yyyymmdd'));
-if ~exist(resultsSubDir,'dir')
-    mkdir(resultsSubDir);
-end
-
-% Base filenames for .mat and .txt (same base name)
-saveFileBase = fullfile(resultsSubDir, sprintf('results_%s', datestr(startTime,'yyyymmdd_HHMMSS')));
+% Base filenames for .mat and .txt (same base name) - save in current directory (pwd)
+saveFileBase = sprintf('results_%s', datestr(startTime,'yyyymmdd_HHMMSS'));
 saveFile = [saveFileBase '.mat'];
 saveFileTxt = [saveFileBase '.txt'];
 
@@ -274,6 +265,10 @@ for modIdx = 1:numModOrders
                     channel.NumReceiveAntennas = nRxAnts;
                     channel.MaximumDopplerShift = 50;
                     channel.DelaySpread = 300e-9;
+
+                    % Release the channel
+                    release(channel);
+                    channel.Seed = randi(1e6);
                     
                     % Get channel info
                     chInfo = info(channel);
@@ -563,9 +558,8 @@ fprintf('\nSimulation ended at %s\n', datestr(endTime,'yyyy-mm-dd HH:MM:SS'));
 totalElapsed = endTime - startTime;
 fprintf('Total elapsed time: %s\n', char(totalElapsed));
 
-% (results directory and saveFile were created at start and diary started)
-% saveFile variable and resultsSubDir are already defined earlier to ensure diary
-% captured the entire run. Proceed to save results into that file.
+% saveFile and saveFileTxt are already defined at the start (saved in pwd)
+% Proceed to save results into that file.
 
 % Save requested parameters and results. Use -v7.3 for large data.
 try

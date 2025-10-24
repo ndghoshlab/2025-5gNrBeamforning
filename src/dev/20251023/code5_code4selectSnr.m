@@ -247,6 +247,10 @@ for modIdx = 1:numModOrders
                     channel.NumReceiveAntennas = nRxAnts;
                     channel.MaximumDopplerShift = 50;
                     channel.DelaySpread = 300e-9;
+
+                    % Release the channel
+                    release(channel);
+                    channel.Seed = randi(1e6);
                     
                     % Get channel info
                     chInfo = info(channel);
