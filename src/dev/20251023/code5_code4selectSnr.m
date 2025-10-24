@@ -1,7 +1,7 @@
 %% ------------------------------------------------------------------------
 % Author  : Armed Tusha (Original), Joshua (Optimized/Modified)
 % Institution : University of Notre Dame
-% Date        : August 1, 2025 (Original), October 23, 2025 (Modified)
+% Date        : August 1, 2025 (Original), October 24, 2025 (Modified)
 % ------------------------------------------------------------------------
 
 %--------------------------------------------------------------------------
@@ -10,6 +10,7 @@
 % - Packet Definition: 2 slots (noSlotsSim = 2)
 % - Packet Error: At least one bit error across the 2 slots
 % - Modified to test multiple ModOrder and pmiPrecoding combinations
+% - Modified to use different SNR ranges for different modulation orders
 % -------------------------------------------------------------------------
 
 clear all, close all, clc;
@@ -21,7 +22,12 @@ clear all, close all, clc;
 noSlotsSim                        = 2;         % Number of slots per packet (FIXED at 2)
 ModOrderList                      = ["16QAM", "64QAM", "256QAM"];  % Modulation orders to test
 pmiPrecodingList                  = [0, 1];    % 0 = SVD, 1 = PMI
-SNRdB                             = [0:5:40];  % SNR in dB, you can input a range too, and have the results for all [0:5:20], etc.
+
+% Different SNR ranges for different modulation orders
+SNRdB_16QAM                       = [10:2:16]; % 16QAM SNR vals
+SNRdB_64QAM                       = [15:2:21]; % 64QAM SNR vals
+SNRdB_256QAM                      = [20:2:30]; % 256QAM SNR vals
+
 perfectEstimation                 = false;     % Perfect synchronization and channel estimation
 numIter                           = 1e2;       % Number of iterations (packets) for this link configuration
 
@@ -121,15 +127,15 @@ rng('default');
 %% -------------------------------------------------------------------------
 % Storage for all results
 % -------------------------------------------------------------------------
-numSNR = length(SNRdB);
 numModOrders = length(ModOrderList);
 numPrecoding = length(pmiPrecodingList);
 numCombinations = numModOrders * numPrecoding;
 
-% Storage: avgBER_all(combination, SNR)
-avgBER_all = zeros(numCombinations, numSNR);
-totalPacketErrors_all = zeros(numCombinations, numSNR);
-avgBitErrorsPerPacket_all = zeros(numCombinations, numSNR);
+% Storage: Use cell arrays since each modulation has different SNR ranges
+avgBER_all = cell(numCombinations, 1);
+totalPacketErrors_all = cell(numCombinations, 1);
+avgBitErrorsPerPacket_all = cell(numCombinations, 1);
+SNRdB_all = cell(numCombinations, 1);
 combinationLabels = cell(numCombinations, 1);
 
 %% -------------------------------------------------------------------------
@@ -145,6 +151,22 @@ for modIdx = 1:numModOrders
         ModOrder = ModOrderList(modIdx);
         pmiPrecoding = pmiPrecodingList(pmiIdx);
         
+        % Select SNR range based on modulation order
+        if ModOrder == "16QAM"
+            SNRdB = SNRdB_16QAM;
+        elseif ModOrder == "64QAM"
+            SNRdB = SNRdB_64QAM;
+        elseif ModOrder == "256QAM"
+            SNRdB = SNRdB_256QAM;
+        else
+            error('Unknown modulation order: %s', ModOrder);
+        end
+        
+        numSNR = length(SNRdB);
+        
+        % Store SNR range for this combination
+        SNRdB_all{combIdx} = SNRdB;
+        
         % Create label for this combination
         precodingLabel = "";
         if pmiPrecoding == 0
@@ -156,6 +178,7 @@ for modIdx = 1:numModOrders
         
         fprintf('\n========================================================================\n');
         fprintf('Running Simulation %d/%d: %s with %s Precoding\n', combIdx, numCombinations, ModOrder, precodingLabel);
+        fprintf('SNR range: %.1f to %.1f dB\n', min(SNRdB), max(SNRdB));
         fprintf('========================================================================\n');
         
         % Configure PDSCH for this modulation order
@@ -487,10 +510,10 @@ for modIdx = 1:numModOrders
         avgBER = mean(inter_snr, 1);
         avgBitErrorsPerPacket = mean(packet_bit_errors, 1);
         
-        % Store in global arrays
-        avgBER_all(combIdx, :) = avgBER;
-        totalPacketErrors_all(combIdx, :) = totalPacketErrors;
-        avgBitErrorsPerPacket_all(combIdx, :) = avgBitErrorsPerPacket;
+        % Store in cell arrays
+        avgBER_all{combIdx} = avgBER;
+        totalPacketErrors_all{combIdx} = totalPacketErrors;
+        avgBitErrorsPerPacket_all{combIdx} = avgBitErrorsPerPacket;
         
         % Display results for this combination
         fprintf('\n========================================\n');
@@ -515,7 +538,7 @@ colors = lines(numCombinations);
 markers = {'o', 's', 'd', '^', 'v', '>'};
 
 for combIdx = 1:numCombinations
-    semilogy(SNRdB, avgBER_all(combIdx, :), ...
+    semilogy(SNRdB_all{combIdx}, avgBER_all{combIdx}, ...
         'LineWidth', 2, ...
         'Marker', markers{combIdx}, ...
         'MarkerSize', 8, ...
