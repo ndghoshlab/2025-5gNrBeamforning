@@ -200,7 +200,7 @@ parfor msnr = 1:numIter
             channel.NumTransmitAntennas = nTxAnts;
             channel.NumReceiveAntennas = nRxAnts;
             channel.MaximumDopplerShift = 50;
-            channel.DelaySpread = 300e-9;
+            channel.DelaySpread = 30e-9;
             
             % Get channel info
             chInfo = info(channel);
