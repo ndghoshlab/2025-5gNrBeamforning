@@ -22,12 +22,12 @@ ModOrderList                      = ["16QAM", "64QAM", "256QAM"];  % Modulation 
 pmiPrecodingList                  = [0, 1];    % 0 = SVD, 1 = PMI
 
 % Different SNR ranges for different modulation orders
-SNRdB_16QAM                       = [10:2:16]; % 16QAM SNR vals
-SNRdB_64QAM                       = [15:2:21]; % 64QAM SNR vals
-SNRdB_256QAM                      = [20:2:30]; % 256QAM SNR vals
+SNRdB_16QAM                       = [5:1:25]; % 16QAM SNR vals
+SNRdB_64QAM                       = [10:1:30]; % 64QAM SNR vals
+SNRdB_256QAM                      = [15:1:35]; % 256QAM SNR vals
 
 perfectEstimation                 = false;     % Perfect synchronization and channel estimation
-numIter                           = 1e1;       % Number of iterations (packets) for this link configuration
+numIter                           = 2.5e4;       % Number of iterations (packets) for this link configuration
 
 %% -------------------------------------------------------------------------
 % Carrier Configuration
@@ -55,7 +55,7 @@ rvSeq                            = [0 2 3 1];
 rvSeq                            = [0];          % Close the retransmission
 
 % Coding rate
-codeRate  = 948/1024;                            % This is the code rate
+codeRate  = 490/1024;                            % This is the code rate
 
 % -------------------------------------------------------------------------
 % DL-SCH encoder and decoder objects (TEMPLATE - will be cloned per worker)
@@ -263,19 +263,16 @@ for modIdx = 1:numModOrders
                     channel.DelayProfile = "TDL-C";
                     channel.NumTransmitAntennas = nTxAnts;
                     channel.NumReceiveAntennas = nRxAnts;
-                    channel.MaximumDopplerShift = 50;
+                    channel.MaximumDopplerShift = 0;
                     channel.DelaySpread = 30e-9;
+
+                    % Get channel info
+                    chInfo = info(channel);
+                    maxChDelay = chInfo.MaximumChannelDelay;
 
                     % Release the channel
                     release(channel);
                     channel.Seed = randi(1e6);
-                    
-                    % Get channel info
-                    chInfo = info(channel);
-                    
-                    % Zero delay configuration
-                    channel.DelaySpread = 0;
-                    maxChDelay = 0;
                     
                     % OPTIMIZATION 6: Use precomputed ofdmInfo
                     channel.SampleRate = ofdmInfo.SampleRate;
