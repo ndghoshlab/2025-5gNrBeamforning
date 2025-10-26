@@ -50,12 +50,12 @@ pdsch_base.DMRS.DMRSLength             = 2;
 % -------------------------------------------------------------------------
 % HARQ Configuration & Coding Rate
 % -------------------------------------------------------------------------
-NHARQProcesses                   = 16;           % Number of parallel HARQ processes
-rvSeq                            = [0 2 3 1];
-rvSeq                            = [0];          % Close the retransmission
+NHARQProcesses                   = 16;          % Number of parallel HARQ processes
+% rvSeq                            = [0 2 3 1];
+rvSeq                            = [0];         % Close the retransmission
 
 % Coding rate
-codeRate  = 490/1024;                            % This is the code rate
+codeRate                         = 490/1024;    % This is the code rate
 
 % -------------------------------------------------------------------------
 % DL-SCH encoder and decoder objects (TEMPLATE - will be cloned per worker)

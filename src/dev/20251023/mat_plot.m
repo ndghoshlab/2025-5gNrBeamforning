@@ -22,4 +22,4 @@ title(sprintf('BER vs SNR Comparison (%d packets, %d slots/packet)', numIter, no
     'FontSize', 14, 'FontWeight', 'bold');
 legend('Location', 'best', 'FontSize', 10);
 set(gca, 'FontSize', 11);
-
+ylim([1e-9 1e0]);
