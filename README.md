@@ -17,6 +17,6 @@ TODO:
 - Implement algo for `perfRx=false`
 
 Major Changelogs:
-- Removed implementation of multiple slots due to bug causing nrOFDMModulate() to fail ([link](https://github.com/armedtusha/5gNrBeamforningSim/issues/2))
+- Removed implementation of multiple slots due to bug causing `nrOFDMModulate()` to fail ([link](https://github.com/armedtusha/5gNrBeamforningSim/issues/2))
 - Implemented s-PMI algo
 - User-input option for different degrees of saving variables in `/src/crc`
