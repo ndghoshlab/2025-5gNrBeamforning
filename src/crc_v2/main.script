@@ -1,0 +1,9 @@
+#!/bin/bash
+#$ -M jpalathi@nd.edu      # Email address for job notification
+#$ -m abe               # Send mail when job begins, ends and aborts
+#$ -q long
+#$ -pe smp 64
+
+module load matlab
+
+matlab -nodisplay -nosplash -batch "main_ber;exit"

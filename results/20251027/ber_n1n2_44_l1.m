@@ -1,0 +1,69 @@
+% Extract data from simulation results
+
+% 16QAM-SVD
+SNRdB_16QAM_SVD = [0:15]';
+BER_16QAM_SVD = [4.8422e-05; 2.7409e-06; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00];
+
+% 16QAM-PMI
+SNRdB_16QAM_PMI = [0:15]';
+BER_16QAM_PMI = [6.8110e-02; 1.0944e-02; 2.8680e-04; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00];
+
+% 64QAM-SVD
+SNRdB_64QAM_SVD = [0:20]';
+BER_64QAM_SVD = [3.0523e-02; 2.9841e-03; 1.2545e-04; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00];
+
+% 64QAM-PMI
+SNRdB_64QAM_PMI = [0:20]';
+BER_64QAM_PMI = [1.7938e-01; 1.5374e-01; 1.1779e-01; 8.3985e-02; 4.6845e-02; ...
+    8.8953e-03; 2.5756e-04; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; 0.0000e+00; ...
+    0.0000e+00];
+
+% Store in cell arrays
+SNRdB_all = {SNRdB_16QAM_SVD, SNRdB_16QAM_PMI, SNRdB_64QAM_SVD, SNRdB_64QAM_PMI};
+avgBER_all = {BER_16QAM_SVD, BER_16QAM_PMI, BER_64QAM_SVD, BER_64QAM_PMI};
+
+% Configuration
+ModOrderList = [16, 64];
+pmiPrecodingList = [false, true]; % SVD, PMI
+combinationLabels = {'16QAM-SVD', '16QAM-PMI', '64QAM-SVD', '64QAM-PMI'};
+numIter = 10000;
+noSlotsSim = 1;
+
+% Plotting
+numCombinations = length(ModOrderList) * length(pmiPrecodingList);
+modColors = lines(length(ModOrderList));
+lineStyles = {'-', '--'};
+markers = {'s', '^'};
+for combIdx = 1:numCombinations
+    modIdx = ceil(combIdx / length(pmiPrecodingList));
+    pmiIdx = mod(combIdx - 1, length(pmiPrecodingList)) + 1;
+    semilogy(SNRdB_all{combIdx}, avgBER_all{combIdx}, ... 
+        'LineWidth', 2, ...
+        'LineStyle', lineStyles{pmiIdx}, ...
+        'Marker', markers{pmiIdx}, ...
+        'MarkerSize', 6, ...
+        'Color', modColors(modIdx, :), ...
+        'DisplayName', combinationLabels{combIdx});
+    hold on;
+end
+grid on;
+hold off;
+xlabel('SNR (dB)', 'FontSize', 12, 'FontWeight', 'bold');
+ylabel('BER', 'FontSize', 12, 'FontWeight', 'bold');
+title(sprintf('BER vs SNR Comparison (%d packets, %d slots/packet)', numIter, noSlotsSim), ...
+    'FontSize', 14, 'FontWeight', 'bold');
+legend('Location', 'best', 'FontSize', 10);
+set(gca, 'FontSize', 11);
+ylim([1e-9 1e0]);

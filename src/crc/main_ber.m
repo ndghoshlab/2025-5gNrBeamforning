@@ -14,17 +14,14 @@
 clear all, close all, clc;
 
 %% sim params
-noSlotsSim          = 2; % FIXED at 2
+noSlotsSim          = 1; % FIXED at 2, changed to 1 because of bug (github repo has details)
 ModOrderList        = ["16QAM","64QAM","256QAM"];
 pmiPrecodingList    = [0, 1];
-% SNRdB_16QAM         = [5:2:25];
-% SNRdB_64QAM         = [10:2:30];
-% SNRdB_256QAM        = [15:2:35];
-SNRdB_16QAM         = [0:2:20];
-SNRdB_64QAM         = [5:2:25];
-SNRdB_256QAM        = [10:2:30];
+SNRdB_16QAM         = [-5:1:10];
+SNRdB_64QAM         = [0:1:15];
+SNRdB_256QAM        = [5:1:20];
 perfectEstimation   = false;
-numIter             = 1e3;
+numIter             = 1e2;
 MaximumDopplerShift = 0;
 DelaySpread         = 300e-9;
 nLayers             = 1;
@@ -41,14 +38,16 @@ pdsch_base.PRBSet                      = 0:carrier.NSizeGrid-1; % Full band allo
 pdsch_base.DMRS.DMRSAdditionalPosition = 1;
 pdsch_base.DMRS.DMRSConfigurationType  = 1;
 pdsch_base.DMRS.DMRSLength             = 2;
-numCodewords = pdsch_base.NumCodewords; % manually setting as this param
-% doesn't get copied from pdsch_base to pdsch when cloned because it is 
-% read-only variable. so replaced all pdsch.NumCodewords with numCodewords
 
 %% harq and coding rate
 NHARQProcesses = 16;       % Number of parallel HARQ processes
 rvSeq          = [0];      % Close the retransmission
-codeRate       = 490/1024; % This is the code rate
+% codeRate       = 490/1024; % This is the code rate
+if pdsch_base.NumCodewords == 1
+    codeRate = 490/1024;
+else
+    codeRate = [490 490]./1024;
+end
 
 % DL-SCH encoder
 encodeDLSCH_template                       = nrDLSCH;
@@ -144,6 +143,7 @@ fprintf('Number of Transmit Antennas: %d\n', nTxAnts);
 fprintf('Number of Receive Antennas: %d\n', nRxAnts);
 fprintf('Number of Layers: %d\n', nLayers);
 fprintf('Number of CSI-RS Ports: %d\n', csirsPorts);
+fprintf('Panel Dimensions: [%d x %d]\n', reportConfig.PanelDimensions(1), reportConfig.PanelDimensions(2));
 
 %% -------------------------------------------------------------------------
 % Run simulations for all combinations
@@ -223,7 +223,7 @@ for modIdx = 1:numModOrders
             % This is necessary for parfor to avoid shared state
             encodeDLSCH = clone(encodeDLSCH_template);
             decodeDLSCH = clone(decodeDLSCH_template);
-            harqEntity = HARQEntity(0:NHARQProcesses-1, rvSeq, numCodewords);
+            harqEntity = HARQEntity(0:NHARQProcesses-1, rvSeq, pdsch.NumCodewords);
             
             % Local carrier object (to avoid broadcast variable issues)
             localCarrier = carrier;
@@ -362,7 +362,7 @@ for modIdx = 1:numModOrders
                         pdschInfo.NREPerPRB, codeRate, Xoh_PDSCH);
                     
                     % HARQ processing
-                    for cwIdx = 1:numCodewords
+                    for cwIdx = 1:pdsch.NumCodewords
                         if harqEntity.NewData(cwIdx)
                             trBlk = randi([0 1], trBlkSizes(cwIdx), 1);
                             setTransportBlock(encodeDLSCH, trBlk, cwIdx - 1, harqEntity.HARQProcessID);
@@ -457,7 +457,7 @@ for modIdx = 1:numModOrders
                     
                     % Scale LLRs by CSI
                     csi = nrLayerDemap(csi);
-                    for cwIdx = 1:numCodewords
+                    for cwIdx = 1:pdsch.NumCodewords
                         Qm = length(dlschLLRs{cwIdx}) / length(rxSymbols{cwIdx});
                         csi{cwIdx} = repmat(csi{cwIdx}.', Qm, 1);
                         dlschLLRs{cwIdx} = dlschLLRs{cwIdx} .* csi{cwIdx}(:);

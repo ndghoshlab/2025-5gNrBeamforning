@@ -36,8 +36,8 @@ reportConfig.ParameterCombination = 2;
 reportConfig.NumberOfPMISubbandsPerCQISubband = 2;
 
 %% more params
-nTxAnts = csirs.NumCSIRSPorts(1);    % Number of transmit antennas (physical)
-nRxAnts = 1;                         % Number of receive antennas (physical)
+nTxAnts = csirs.NumCSIRSPorts(1);
+nRxAnts = 1;
 csirsPorts = csirs.NumCSIRSPorts(1); % Number of CSI-RS ports, logical antennas
 
 
@@ -70,6 +70,9 @@ reportConfig.CQITable        = 'table1';
 reportConfig.CQIMode         = 'Wideband';
 reportConfig.PMIMode         = 'Wideband';
 reportConfig.CodebookMode    = 1;
+reportConfig.CodebookSubsetRestriction = [];
+reportConfig.i2Restriction = [];
+reportConfig.OverSamplingFactors = [4 4];
 
 %% more params
 nTxAnts         = csirs.NumCSIRSPorts;    % Number of transmit antennas (physical)
