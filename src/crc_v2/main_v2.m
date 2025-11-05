@@ -2,6 +2,8 @@
 %%% which calls Array_weight_PMI(). Even when the 'if' block is not
 %%% activated, usage of parfor requires it to be defined.
 
+%% TODO: main_v2.m is outdated. Refer to main.m for the latest version.
+
 clear, clc;
 
 %% sim params

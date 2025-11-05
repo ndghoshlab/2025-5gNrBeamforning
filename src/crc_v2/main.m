@@ -1,4 +1,4 @@
-clear, close, clc;
+clear, clc;
 
 %% sim params
 ModOrderList = ["16QAM","64QAM","256QAM"];
@@ -11,7 +11,7 @@ MaximumDopplerShift = 0;
 DelaySpread = 300e-9;
 
 perfTx = false;
-perfRx = true; % TODO: need to verify when perfRx = false
+perfRx = true;
 
 nLayers = 2;
 
@@ -21,6 +21,7 @@ numIter = 1e1;
 carrier = nrCarrierConfig;
 carrier.SubcarrierSpacing = 30;
 carrier.NFrame = 1;
+carrier.NSlot = 0; % Slot number within the frame
 
 %% pdsch_base config
 pdsch_base = nrPDSCHConfig;
@@ -54,14 +55,14 @@ decodeDLSCH_template.MaximumLDPCIterationCount = 8;
 %% csr-rs config
 % 32-port CSI-RS resource (Row 16)
 csirs = nrCSIRSConfig;
-csirs.CSIRSType     = {'nzp'};
-csirs.RowNumber     = 16; % 32 ports
-csirs.NumRB         = 52;
-csirs.RBOffset      = 0;
-csirs.CSIRSPeriod   = [4 0];
+csirs.CSIRSType = {'nzp'};
+csirs.RowNumber = 16; % 32 ports
+csirs.NumRB = 52;
+csirs.RBOffset = 0;
+csirs.CSIRSPeriod = [4 0];
 % Row 16 requires 2 subcarrier and 2 symbol locations
 csirs.SubcarrierLocations = {[0 2 4 6]}; % 4 valid kᵢ values
-csirs.SymbolLocations   = {[7 9]}; % 2 OFDM symbols
+csirs.SymbolLocations = {[7 9]}; % 2 OFDM symbols
 csirs.Density = {'one'};
 
 %% report configuration
@@ -73,11 +74,14 @@ reportConfig.CQITable = 'table1';
 reportConfig.CQIMode = 'Wideband';
 reportConfig.PMIMode = 'Wideband';
 reportConfig.CodebookMode = 1;
+reportConfig.CodebookSubsetRestriction = [];
+reportConfig.i2Restriction = [];
+reportConfig.OverSamplingFactors = [4 4];
 
 %% more params
-nTxAnts         = csirs.NumCSIRSPorts;
-nRxAnts         = 4; 
-csirsPorts      = csirs.NumCSIRSPorts;
+nTxAnts = csirs.NumCSIRSPorts;
+nRxAnts = 4;
+csirsPorts = csirs.NumCSIRSPorts; % Number of CSI-RS ports (logical antennas)
 
 % Get CDM lengths corresponding to configured CSI-RS resources
 cdmLengths = getCDMLengths(csirs);
@@ -218,16 +222,12 @@ for modIdx = 1:numModOrders
         harqEntity = HARQEntity(0:NHARQProcesses-1, rvSeq, pdsch.NumCodewords);
         
         localCarrier = carrier;
-        localCarrier.NSlot = 0;
-        
-        offsetPractical = 0;
-        
-        trBlk = [];
+        % localCarrier.NSlot = 0; % already done in carrier config
         
         ber_snr = zeros(1, numSNR);
         bitErrors_snr = zeros(1, numSNR);
         slotError_snr = zeros(1, numSNR);
-        
+
         for snrIdx = 1:numSNR
             channel = nrTDLChannel;
             channel.DelayProfile = "TDL-C";
@@ -244,9 +244,13 @@ for modIdx = 1:numModOrders
             channel.Seed = randi(1e6);
             
             channel.SampleRate = ofdmInfo.SampleRate;
+
+            trBlk = [];
             
             % Initial timing offset
             offset = 0;
+            offsetPractical = 0;
+            offsetPerfect = 0;
             
             % % Get initial channel estimate and precoding matrix from pdsch
             % estChannelGrid = getInitialChannelEstimate(channel, localCarrier);
@@ -308,18 +312,18 @@ for modIdx = 1:numModOrders
             if LPerfect < symbPerSlot
                 rxGridPerfect_csirs = cat(2, rxGridPerfect_csirs, zeros(K, symbPerSlot - LPerfect, nRxAnts));
             end
-            
+
             rxGridPractical_csirs = rxGridPractical_csirs(:, 1:symbPerSlot, :);
             rxGridPerfect_csirs = rxGridPerfect_csirs(:, 1:symbPerSlot, :);
-            
+
             % Extract NZP-CSI-RS symbols and indices
             nzpCSIRSSym = csirsSym(csirsSym ~= 0);
             nzpCSIRSInd = csirsInd(csirsSym ~= 0);
-            
+
             % Practical channel estimate
             [PracticalHest_csirs, nVarPractical_csirs] = nrChannelEstimate(localCarrier, rxGridPractical_csirs, ...
                 nzpCSIRSInd, nzpCSIRSSym, 'CDMLengths', cdmLengths, 'AveragingWindow', [0 5]);
-            
+
             % Perfect channel and noise estimate
             PerfectHest = nrPerfectChannelEstimate(localCarrier, pathGains, pathFilters, offsetPerfect, sampleTimes);
             noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offsetPerfect:end, :));
@@ -410,14 +414,17 @@ for modIdx = 1:numModOrders
             noise = generateAWGN(SNRdB(snrIdx), nRxAnts, ofdmInfo.Nfft, size(rxWaveform));
             rxWaveform = rxWaveform + noise;
             
-            % Timing estimation and synchronization
-            if perfRx
-                pathFilters = getPathFilters(channel);
-                offset = nrPerfectTimingEstimate(pathGains, pathFilters);
-            else
-                [t, mag] = nrTimingEstimate(localCarrier, rxWaveform, dmrsIndices, dmrsSymbols);
-                offset = hSkipWeakTimingOffset(offset, t, mag);
-            end
+            % % Timing estimation and synchronization
+            % if perfRx
+            %     pathFilters = getPathFilters(channel);
+            %     offset = nrPerfectTimingEstimate(pathGains, pathFilters);
+            % else
+            %     [t, mag] = nrTimingEstimate(localCarrier, rxWaveform, dmrsIndices, dmrsSymbols);
+            %     offset = hSkipWeakTimingOffset(offset, t, mag);
+            % end
+            % TODO: Using perfect offset for both perfRx = true/false for now
+            pathFilters = getPathFilters(channel);
+            offset = nrPerfectTimingEstimate(pathGains, pathFilters);
             
             rxWaveform = rxWaveform(1 + offset:end, :);
             
@@ -437,10 +444,11 @@ for modIdx = 1:numModOrders
                 % newPrecodingWeight = getPrecodingMatrix(pdsch.PRBSet, pdsch.NumLayers, estChGridAnts);
                 estChGridLayers = precodeChannelEstimate(estChGridAnts, precodingWeights.');
             else
-                %% TODO: need to verify when perfRx = false
+                noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offset:end, :));
+                noiseEst = var(noiseGrid(:));
                 [estChGridLayers, noiseEst] = nrChannelEstimate(localCarrier, rxGrid, dmrsIndices, ...
                     dmrsSymbols, 'CDMLengths', pdsch.DMRS.CDMLengths);
-                estChGridAnts = precodeChannelEstimate(estChGridLayers, conj(precodingWeights));
+                % estChGridAnts = precodeChannelEstimate(estChGridLayers, conj(precodingWeights));
                 % newPrecodingWeight = getPrecodingMatrix(pdsch.PRBSet, pdsch.NumLayers, estChGridAnts);
             end
             
