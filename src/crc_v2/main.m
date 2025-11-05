@@ -2,7 +2,7 @@ clear, clc;
 
 %% sim params
 ModOrderList = ["16QAM","64QAM","256QAM"];
-pmiPrecoding = true;
+pmiPrecoding = false;
 SNRdB_16QAM = [-5:1:10];
 SNRdB_64QAM = [0:1:15];
 SNRdB_256QAM = [5:1:20];
@@ -11,7 +11,7 @@ MaximumDopplerShift = 0;
 DelaySpread = 300e-9;
 
 perfTx = false;
-perfRx = true;
+perfRx = false;
 
 nLayers = 2;
 
@@ -438,11 +438,11 @@ for modIdx = 1:numModOrders
             
             % Rx Channel estimation
             if perfRx
-                estChGridAnts = nrPerfectChannelEstimate(localCarrier, pathGains, pathFilters, offset, sampleTimes);
                 noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offset:end, :));
                 noiseEst = var(noiseGrid(:));
-                % newPrecodingWeight = getPrecodingMatrix(pdsch.PRBSet, pdsch.NumLayers, estChGridAnts);
+                estChGridAnts = nrPerfectChannelEstimate(localCarrier, pathGains, pathFilters, offset, sampleTimes);
                 estChGridLayers = precodeChannelEstimate(estChGridAnts, precodingWeights.');
+                % newPrecodingWeight = getPrecodingMatrix(pdsch.PRBSet, pdsch.NumLayers, estChGridAnts);
             else
                 noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offset:end, :));
                 noiseEst = var(noiseGrid(:));

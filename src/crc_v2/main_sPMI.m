@@ -3,9 +3,9 @@ clear, clc;
 %% sim params
 ModOrderList = ["16QAM","64QAM","256QAM"];
 pmiPrecoding = "s-PMI";
-SNRdB_16QAM = [-5:1:10];
-SNRdB_64QAM = [0:1:15];
-SNRdB_256QAM = [5:1:20];
+SNRdB_16QAM = [0:1:15];
+SNRdB_64QAM = [5:1:20];
+SNRdB_256QAM = [10:1:25];
 
 s_pmi_filename = 'N1_4_N2_4_Layer_2_El_Ref_Bel_10.mat';
 
@@ -13,11 +13,11 @@ MaximumDopplerShift = 0;
 DelaySpread = 300e-9;
 
 perfTx = false;
-perfRx = true;
+perfRx = false;
 
 nLayers = 2;
 
-numIter = 1e0;
+numIter = 1e1;
 
 %% carrier config
 carrier = nrCarrierConfig;
@@ -466,11 +466,11 @@ for modIdx = 1:numModOrders
 
             % Rx Channel estimation
             if perfRx
-                estChGridAnts = nrPerfectChannelEstimate(localCarrier, pathGains, pathFilters, offset, sampleTimes);
                 noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offset:end, :));
                 noiseEst = var(noiseGrid(:));
-                % newPrecodingWeight = getPrecodingMatrix(pdsch.PRBSet, pdsch.NumLayers, estChGridAnts);
+                estChGridAnts = nrPerfectChannelEstimate(localCarrier, pathGains, pathFilters, offset, sampleTimes);
                 estChGridLayers = precodeChannelEstimate(estChGridAnts, precodingWeights.');
+                % newPrecodingWeight = getPrecodingMatrix(pdsch.PRBSet, pdsch.NumLayers, estChGridAnts);
             else
                 noiseGrid = nrOFDMDemodulate(localCarrier, noise(1 + offset:end, :));
                 noiseEst = var(noiseGrid(:));
