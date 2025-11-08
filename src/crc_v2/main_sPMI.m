@@ -7,7 +7,7 @@ SNRdB_16QAM = [0:1:15];
 SNRdB_64QAM = [5:1:20];
 SNRdB_256QAM = [10:1:25];
 
-s_pmi_filename = 'N1_4_N2_4_Layer_2_El_Ref_Bel_10.mat';
+s_pmi_filename = 'sPMI_thres.mat';
 
 MaximumDopplerShift = 0;
 DelaySpread = 300e-9;
