@@ -11,10 +11,10 @@ Authors:
 - Joshua Roy Palathinkal (jpalthi@nd.edu)
 
 TODO:
-- Need to merge `/src/crc_v2` with `/src/crc`
-- Need to implement single script to select between SVD, PMI and s-PMI algos
-- Verify why `release(channel)` isn't changing pathGain and pathDelay
-- Implement algo for `perfRx=false`
+- [ ] Need to merge `/src/crc_v2` with `/src/crc`
+- [x] ~~Need to implement single script to select between SVD, PMI and s-PMI algos~~ omitting
+- [ ] Verify why `release(channel)` isn't changing pathGain and pathDelay
+- [ ] ~~Implement algo for `perfRx=false`~~ done
 
 Major Changelogs:
 - Removed implementation of multiple slots due to bug causing `nrOFDMModulate()` to fail ([link](https://github.com/armedtusha/5gNrBeamforningSim/issues/2))
