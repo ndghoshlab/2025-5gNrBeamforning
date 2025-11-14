@@ -10,13 +10,15 @@ Authors:
 - Armed Tusha (atusha@nd.edu)
 - Joshua Roy Palathinkal (jpalthi@nd.edu)
 
-TODO:
+TODO: (increasing order of improtance):
 - [ ] Need to merge `/src/crc_v2` with `/src/crc`
-- [x] ~~Need to implement single script to select between SVD, PMI and s-PMI algos~~ omitting
 - [ ] Verify why `release(channel)` isn't changing pathGain and pathDelay
-- [ ] ~~Implement algo for `perfRx=false`~~ done
+- [ ] Issue with BER results for SVD when `perfChan`=false at -2dB SNR for 16-QAM and 10,11dB SNR for 256-QAM.
+- [ ] Need to merge `perfTx` and `perfRx` into `perfChan`
+- [ ] User-input option for different degrees of saving variables in `/src/crc`
+- [x] ~~Implement algo for `perfRx=false`~~
+- [x] ~~Need to implement single script to select between SVD, PMI and s-PMI algos~~ OMITTING
 
-Major Changelogs:
-- Removed implementation of multiple slots due to bug causing `nrOFDMModulate()` to fail ([link](https://github.com/armedtusha/5gNrBeamforningSim/issues/2))
+Major Changelogs (newer first):
 - Implemented s-PMI algo
-- User-input option for different degrees of saving variables in `/src/crc`
+- Removed implementation of multiple slots due to bug causing `nrOFDMModulate()` to fail ([link](https://github.com/armedtusha/5gNrBeamforningSim/issues/2))
