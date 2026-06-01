@@ -1,3 +1,5 @@
+## This script is for CRC submission (Notre Dame's high performance computing resource)
+
 #!/bin/bash
 #$ -M jpalathi@nd.edu      # Email address for job notification
 #$ -m abe               # Send mail when job begins, ends and aborts
