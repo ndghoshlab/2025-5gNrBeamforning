@@ -7,7 +7,7 @@ This repo contains codes and results for the 5g-nr beamforming project. The fold
 
 Authors:
 - Joshua Roy Palathinkal (jpalthi@nd.edu)
-- Armed Tusha (atusha@nd.edu)
+- Armed Tusha (armedtusha@gmail.com)
 
 TODO: (increasing order of improtance):
 - [x] ~~Need to merge `/src/crc_v2` with `/src/crc`:~~ moved `/src/crc` to `archive/20260601`, renamed `/src/crc_v2` to `/src/AnalyseEirp`.
