@@ -9,6 +9,9 @@ Authors:
 - Joshua Roy Palathinkal (jpalthi@nd.edu)
 - Armed Tusha (armedtusha@gmail.com)
 
+Notes:
+- Previous code versions are archived in the `archive/20260601` branch.
+
 Major Changelogs (newer first):
 - Implemented s-PMI algo
 - Removed implementation of multiple slots due to bug causing `nrOFDMModulate()` to fail ([link](https://github.com/armedtusha/5gNrBeamforningSim/issues/2))
