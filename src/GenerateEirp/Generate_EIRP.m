@@ -7,6 +7,13 @@ clear all; %close all; clc;
 
 rng(211);             % Set RNG state for repeatability
 
+% Output folder path for further study
+folderPath = fullfile(pwd, '../Save-Files');
+disp(['Saving files to ', folderPath]);
+if ~exist(folderPath, 'dir')
+    mkdir(folderPath)
+end
+
 %% %%%%%%%%%%%%%%%%%%%%% Simulation Parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % %%%%%%%%%%%%%% Precoder Matrix Indicator (PMI) patameters %%%%%%%%%%%%%%%
@@ -377,20 +384,13 @@ for iissb = 1:numSSbeams
 
     Power_AzEl_SSB_Lin                    = ResultElAz_SSB_Lin;
     
-    originalFolder = pwd;
-
-    folderPath = ['C:\Users\armed\Desktop\NTIA-Project-Codes\Save-Files'];
-    cd (folderPath);
+    save_matrix_to_here(folderPath, Power_AzEl_PMI_Lin, N1, N2, nLayers, iissb);
+    save_matrix_to_here(folderPath, Power_AzEl_SSB_PMI_Lin, N1, N2, nLayers, iissb);
+    save_matrix_to_here(folderPath, Power_AzEl_SSB_Lin, N1, N2, nLayers, iissb);
     
-    save_matrix_to_here(Power_AzEl_PMI_Lin, N1, N2, nLayers, iissb);
-    save_matrix_to_here(Power_AzEl_SSB_PMI_Lin, N1, N2, nLayers, iissb);
-    save_matrix_to_here(Power_AzEl_SSB_Lin, N1, N2, nLayers, iissb);
-    
-    save_matrix_to_here(AF_AzEl_PMI_eField, N1, N2, nLayers, iissb);
-    save_matrix_to_here(AF_AzEl_SSB_PMI_eField, N1, N2, nLayers, iissb);
-    save_matrix_to_here(AF_ElAz_SSB_eField, N1, N2, nLayers, iissb);
-    
-    cd(originalFolder)
+    save_matrix_to_here(folderPath, AF_AzEl_PMI_eField, N1, N2, nLayers, iissb);
+    save_matrix_to_here(folderPath, AF_AzEl_SSB_PMI_eField, N1, N2, nLayers, iissb);
+    save_matrix_to_here(folderPath, AF_ElAz_SSB_eField, N1, N2, nLayers, iissb);
 
 end
 
