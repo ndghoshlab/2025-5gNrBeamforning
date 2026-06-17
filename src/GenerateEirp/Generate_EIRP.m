@@ -6,6 +6,7 @@ clear all; %close all; clc;
 % Start Date    : June-1-2024
 
 rng(211);             % Set RNG state for repeatability
+testingMode = false;  % Enable testing mode to quickly run the script on a small number of variables
 
 % Output folder path for further study
 folderPath = fullfile(pwd, '../Save-Files');
@@ -277,7 +278,12 @@ AF_AzEl_SSB_PMI_eField  = zeros(nEl, nAz, ContTempPMI);
 
 %nLayers_loc = nLayers;
 
-%numSSbeams = 1;
+if testingMode
+    % Only run for a single SSB and PMI on testing mode
+    numSSbeams = 1;
+    ContTempPMI = 1;
+end
+    
 for iissb = 1:numSSbeams
 
     display(['Generating SSB Idx: ', num2str(iissb)])
@@ -312,7 +318,6 @@ for iissb = 1:numSSbeams
 
 
     for pmi = 1:ContTempPMI
-    %for pmi = 1:2
 
         AntArrayTx_loc = AntArrayConst.Value;
         %gNBT_loc       = SteerConst.Value;
